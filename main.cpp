@@ -20,6 +20,47 @@ double d_arr[] = {0.07, 0.10, 0.10, 0.10, 0.10}; // d опір
 double l_arr[] = {0.0, 0.0, 0.0, 1.0, 1.0}; // l підйомна сила
 
 
+struct TrajectoryData {
+    double xd;
+    double yd;
+    double zd;            // висота підриву/цілі по Z (з вхідних даних)
+    double targetX;
+    double targetY;
+    double V0;            // початкова швидкість
+    double accelerationPath;
+
+    char ammoName[50];    // назва боєприпаса з вхідних даних
+
+    double h;             // горизонтальна дистанція польоту
+    double D;             // відстань до цілі по горизонталі
+};
+
+struct Point {
+    double x;
+    double y;
+    double xd_new;        // точка маневру X
+    double yd_new;        // точка маневру Y
+};
+
+
+bool readInput( TrajectoryData& data) {
+       std::ifstream in("input.txt");
+
+    in >> data.xd >> data.yd >> data.zd >> data.targetX >> data.targetY >> data.V0 >> data.accelerationPath >> data.ammoName;
+    return static_cast<bool>(in);
+}
+
+
+void writeOutput(const TrajectoryData& data, const Point& fp) {
+   //    auto &out = std::cout;
+    std::ofstream out("output.txt");
+    if (data.h + data.accelerationPath > data.D) {
+        out << "точка маневру: " << fp.xd_new << " " << fp.yd_new << std::endl;
+    }
+    out << "точка скиду: " << fp.x << " " << fp.y << std::endl;
+}
+
+
 // пошук боєприпаса індексу
 int findAmmoIndex(const char* name) {
     for (int i = 0; i < ammoCount; i++) {
@@ -73,23 +114,13 @@ double computeHorizontal(double t, double V0, double m, double d, double l) {
     return term1 + term2 + term3 + term4 + term5;
 }
 
-int main() {
-//    auto &out = std::cout;
-    std::ifstream in("input.txt");
-    std::ofstream out("output.txt");
 
-    double xd, yd, zd;
-    double targetX, targetY;
-    double V0, accelerationPath;
-    char ammoName[50];
-
-    in >> xd >> yd >> zd >> targetX >> targetY >> V0 >> accelerationPath >> ammoName;
-
-    int idx = findAmmoIndex(ammoName);
-
+// Підготовка даних: без I/O, працює тільки зі структурою
+bool prepareData(TrajectoryData& data) {
+    // пошук типу боєприпаса
+    int idx = findAmmoIndex(data.ammoName);
     if (idx == -1) {
-        out << "Бєприпас не знайдено" << std::endl;
-        return 1;
+        return false;
     }
 
     double m = m_arr[idx];
@@ -97,37 +128,64 @@ int main() {
     double l = l_arr[idx];
 
     // коефіцієнти
-    double a = d * g * m - 2 * d * d * l * V0;
-    double b = -3 * g * m * m + 3 * d * l * m * V0;
-    double c = 6 * m * m * zd;
+    double a = d * g * m - 2 * d * d * l * data.V0;
+    double b = -3 * g * m * m + 3 * d * l * m * data.V0;
+    double c = 6 * m * m * data.zd;
 
     // час
     double t = solveTime(a, b, c);
 
     // горизонтальна дистанція
-    double h = computeHorizontal(t, V0, m, d, l);
+    data.h = computeHorizontal(t, data.V0, m, d, l);
 
     // відстань
-    double D = sqrt(pow(targetX - xd, 2) + pow(targetY - yd, 2));
+    data.D = sqrt(pow(data.targetX - data.xd, 2) + pow(data.targetY - data.yd, 2));
 
-    double xd_new = xd;
-    double yd_new = yd;
+    return true;
+}
 
-    // маневр
-    if (h + accelerationPath > D) {
-        xd_new = targetX - (targetX - xd) * (h + accelerationPath) / D;
-        yd_new = targetY - (targetY - yd) * (h + accelerationPath) / D;
 
-        out << "точка маневру: " << xd_new << " " << yd_new << std::endl;
+
+Point firePoint(const TrajectoryData& data) {
+    Point p{};
+
+    // маневр (оновлюємо координати, якщо умова виконується)
+    if (data.h + data.accelerationPath > data.D) {
+        p.xd_new = data.targetX - (data.targetX - data.xd) * (data.h + data.accelerationPath) / data.D;
+        p.yd_new = data.targetY - (data.targetY - data.yd) * (data.h + data.accelerationPath) / data.D;
+    } else {
+        // якщо маневр не потрібен — залишаємо початкові координати
+        p.xd_new = data.xd;
+        p.yd_new = data.yd;
     }
 
-    // точка скиду
-    double ratio = (D - h) / D;
+    // точка скиду (логіка незмінна)
+    double ratio = (data.D - data.h) / data.D;
+    p.x = data.xd + (data.targetX - data.xd) * ratio;
+    p.y = data.yd + (data.targetY - data.yd) * ratio;
 
-    double fireX = xd + (targetX - xd) * ratio;
-    double fireY = yd + (targetY - yd) * ratio;
+    return p;
+}
 
-    out << "точка скиду: " << fireX << " " << fireY << std::endl;
+int main() {
+
+
+    TrajectoryData data{};
+
+    if (!readInput(data)) {
+        return 1;
+    }
+
+    if (!prepareData(data)) {
+        std::cout << "Бєприпас не знайдено" << std::endl;
+        return -1;
+    }
+
+    // точка скиду та маневр обчислюються у firePoint
+    Point fp = firePoint(data);
+
+    // вивід
+    writeOutput(data, fp);
 
     return 0;
 }
