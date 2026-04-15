@@ -31,14 +31,14 @@ int findAmmoIndex(const char* name) {
 }
 
 
-double clamp(double x) {
+double clamp(double &x) {
     if (x > 1.0) return 1.0;
     if (x < -1.0) return -1.0;
     return x;
 }
 
 // Кардано
-double solveTime(double a, double b, double c) {
+double solveTime(double &a, double &b, double &c) {
     double p = - (b * b) / (3.0 * a * a);
     double q = (2.0 * pow(b, 3)) / (27.0 * pow(a, 3)) + c / a;
 
