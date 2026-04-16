@@ -114,8 +114,6 @@ double computeHorizontal(double t, double V0, double m, double d, double l) {
     return term1 + term2 + term3 + term4 + term5;
 }
 
-
-// Підготовка даних: без I/O, працює тільки зі структурою
 bool prepareData(TrajectoryData& data) {
     // пошук типу боєприпаса
     int idx = findAmmoIndex(data.ammoName);
@@ -168,9 +166,8 @@ Point firePoint(const TrajectoryData& data) {
 }
 
 int main() {
-
-
     TrajectoryData data{};
+    Point fp;
 
     if (!readInput(data)) {
         return 1;
@@ -182,7 +179,7 @@ int main() {
     }
 
     // точка скиду та маневр обчислюються у firePoint
-    Point fp = firePoint(data);
+    fp = firePoint(data);
 
     // вивід
     writeOutput(data, fp);
