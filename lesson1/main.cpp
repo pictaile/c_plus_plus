@@ -20,12 +20,16 @@ double d_arr[] = {0.07, 0.10, 0.10, 0.10, 0.10}; // d опір
 double l_arr[] = {0.0, 0.0, 0.0, 1.0, 1.0}; // l підйомна сила
 
 
+struct Target {
+    double x;
+    double y;
+};
+
 struct TrajectoryData {
     double xd;
     double yd;
     double zd;            // висота підриву/цілі по Z (з вхідних даних)
-    double targetX;
-    double targetY;
+    Target target;        // координати цілі
     double V0;            // початкова швидкість
     double accelerationPath;
 
@@ -46,7 +50,7 @@ struct Point {
 bool readInput( TrajectoryData& data) {
        std::ifstream in("input.txt");
 
-    in >> data.xd >> data.yd >> data.zd >> data.targetX >> data.targetY >> data.V0 >> data.accelerationPath >> data.ammoName;
+    in >> data.xd >> data.yd >> data.zd >> data.target.x >> data.target.y >> data.V0 >> data.accelerationPath >> data.ammoName;
     return static_cast<bool>(in);
 }
 
@@ -137,7 +141,7 @@ bool prepareData(TrajectoryData& data) {
     data.h = computeHorizontal(t, data.V0, m, d, l);
 
     // відстань
-    data.D = sqrt(pow(data.targetX - data.xd, 2) + pow(data.targetY - data.yd, 2));
+    data.D = sqrt(pow(data.target.x - data.xd, 2) + pow(data.target.y - data.yd, 2));
 
     return true;
 }
@@ -149,8 +153,8 @@ Point firePoint(const TrajectoryData& data) {
 
     // маневр (оновлюємо координати, якщо умова виконується)
     if (data.h + data.accelerationPath > data.D) {
-        p.xd_new = data.targetX - (data.targetX - data.xd) * (data.h + data.accelerationPath) / data.D;
-        p.yd_new = data.targetY - (data.targetY - data.yd) * (data.h + data.accelerationPath) / data.D;
+        p.xd_new = data.target.x - (data.target.x - data.xd) * (data.h + data.accelerationPath) / data.D;
+        p.yd_new = data.target.y - (data.target.y - data.yd) * (data.h + data.accelerationPath) / data.D;
     } else {
         // якщо маневр не потрібен — залишаємо початкові координати
         p.xd_new = data.xd;
@@ -159,8 +163,8 @@ Point firePoint(const TrajectoryData& data) {
 
     // точка скиду (логіка незмінна)
     double ratio = (data.D - data.h) / data.D;
-    p.x = data.xd + (data.targetX - data.xd) * ratio;
-    p.y = data.yd + (data.targetY - data.yd) * ratio;
+    p.x = data.xd + (data.target.x - data.xd) * ratio;
+    p.y = data.yd + (data.target.y - data.yd) * ratio;
 
     return p;
 }
@@ -170,7 +174,7 @@ int main() {
     Point fp;
 
     if (!readInput(data)) {
-        return 1;
+         return 1;
     }
 
     if (!prepareData(data)) {
