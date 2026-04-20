@@ -84,8 +84,6 @@ bool readInput(TrajectoryData& data) {
     std::ifstream in("./input.txt");
     if (!in) return false;
 
-    // Новий формат input.txt:
-    // xd yd zd initialDir attackSpeed accelerationPath ammo_name arrayTimeStep simTimeStep hitRadius angularSpeed turnThreshold
     in >> data.xd
        >> data.yd
        >> data.zd
@@ -101,11 +99,11 @@ bool readInput(TrajectoryData& data) {
 
     if (!in) return false;
 
-    // для існуючої фізичної моделі використовуємо V0 як attackSpeed
+    // використовуємо V0 як attackSpeed
     data.V0 = data.attackSpeed;
 
 
-    // зчитуємо координати цілей з targets.txt (за вимогою), із fallback на target.txt
+    // зчитуємо координати цілей з targets.txt, із fallback на target.txt
     const char* filesToTry[] = {"targets.txt", "target.txt"};
     std::ifstream tfile;
     for (const char* fname : filesToTry) {
@@ -114,7 +112,7 @@ bool readInput(TrajectoryData& data) {
     }
     if (tfile.is_open()) {
         std::string line;
-        // 5 рядків X
+
         for (int i = 0; i < 5; ++i) {
             if (!std::getline(tfile, line)) return false;
             std::istringstream iss(line);
@@ -122,7 +120,7 @@ bool readInput(TrajectoryData& data) {
                 if (!(iss >> data.targetXInTime[i][k])) return false;
             }
         }
-        // 5 рядків Y
+
         for (int i = 0; i < 5; ++i) {
             if (!std::getline(tfile, line)) return false;
             std::istringstream iss(line);
@@ -139,7 +137,7 @@ bool readInput(TrajectoryData& data) {
 }
 
 
-// Вивід симуляції у форматі вимог
+// Вивід симуляції
 static void writeSimulation(const std::vector<double>& xs,
                             const std::vector<double>& ys,
                             const std::vector<double>& dirs,
